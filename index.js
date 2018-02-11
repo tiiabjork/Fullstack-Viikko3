@@ -12,19 +12,13 @@ app.use(express.static('build'))
 morgan.token('body', function (req, res) { return JSON.stringify(req.body) })
 app.use(morgan(':method :url :body :status :res[content-length] - :response-time ms'))
 
-formatPerson = (person) => {
-  const formattedPerson = {...person._doc, id: person._id}
-  delete formattedPerson.__v
-  delete formattedPerson._id
-  return formattedPerson
-}
 
 app.get('/api/persons', (req, res) => {
   console.log('kukkuu')
    Person
     .find({})
     .then(persons => {
-      res.json(persons.map(formatPerson))
+      res.json(persons.map(Person.format))
     })
  })
 
@@ -33,7 +27,7 @@ app.get('/api/persons', (req, res) => {
     .findById(req.params.id)
     .then(person => {
       if (person) {
-        res.json(formatPerson(person))
+        res.json(Person.format(person))
       } else {
         res.status(404).end()
       }
@@ -81,15 +75,21 @@ app.get('/api/persons', (req, res) => {
         person
           .save()
           .then(savedPerson => {
-            res.json(formatPerson(savedPerson))
+            res.json(Person.format(savedPerson))
         })
       }
     })
  })
 
  app.get('/info', (req, res) => {
-   res.send(`<p>Puhelinluettelossa ${persons.length} henkilön tiedot</p>
-             <p>` + new Date() + `</p>`)
+   Person
+    .find({})
+    .count()
+    .then(count => {
+      res.send(`<p>Puhelinluettelossa on ${count} henkilön tiedot</p>
+                <p>` + new Date() + `</p>`)
+    })
+
  })
 
 
