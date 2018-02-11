@@ -3,7 +3,7 @@ const app = express()
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const cors = require ('cors')
-
+const Person = require('./models/person')
 
 app.use(bodyParser.json())
 app.use(cors())
@@ -12,82 +12,79 @@ app.use(express.static('build'))
 morgan.token('body', function (req, res) { return JSON.stringify(req.body) })
 app.use(morgan(':method :url :body :status :res[content-length] - :response-time ms'))
 
+formatPerson = (person) => {
+  const formattedPerson = {...person._doc, id: person._id}
+  delete formattedPerson.__v
+  delete formattedPerson._id
+  return formattedPerson
+}
 
-let persons = [
-   {
-     "name": "Arto Hellas",
-     "number": "040-123456",
-     "id": 1
-   },
-   {
-     "name": "Martti Tienari",
-     "number": "040-123456",
-     "id": 2
-   },
-   {
-     "name": "Arto Järvinen",
-     "number": "040-123456",
-     "id": 3
-   },
-   {
-     "name": "Lea Kutvonen",
-     "number": "040-123456",
-     "id": 4
-   },
-   {
-     "name": "Päivitettyyyyyyyyy",
-     "number": "040-123456",
-     "id": 5
-   }
- ]
-
- app.get('/', (req, res) => {
-   res.send('/index.html')
- })
-
- app.get('/api/persons', (req, res) => {
-   res.json(persons)
+app.get('/api/persons', (req, res) => {
+  console.log('kukkuu')
+   Person
+    .find({})
+    .then(persons => {
+      res.json(persons.map(formatPerson))
+    })
  })
 
  app.get('/api/persons/:id', (req, res) => {
-   const id = Number(req.params.id)
-   const person = persons.find(person => person.id === id)
-
-   if (person) {
-     res.json(person)
-   } else {
-     res.status(404).end()
-   }
+   Person
+    .findById(req.params.id)
+    .then(person => {
+      if (person) {
+        res.json(formatPerson(person))
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch(error => {
+      console.log(error)
+      res.status(404).send({error: 'malformatted id'})
+    })
  })
 
  app.delete('/api/persons/:id', (req, res) => {
-   const id = Number(req.params.id)
-   persons = persons.filter(person => person.id !== id)
-   res.status(204).end()
+   const id = req.params.id
+
+   Person
+    .findByIdAndRemove(id)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(error => {
+      console.log(error)
+      res.status(404).send({error: 'malformatted id'})
+    })
  })
 
  app.post('/api/persons', (req, res) => {
-   const personId = Math.floor(Math.random() * Math.floor(10000))
    const body = req.body
 
    if (body.name === undefined || body.name === "") {
      return res.status(400).json({error: 'Name missing.'})
    }
-   if (persons.find(person => person.name === body.name)) {
-     return res.status(400).json({error: 'Name already has a number.'})
-   }
    if (body.number === undefined || body.number === "") {
      return res.status(400).json({error: 'Number missing.'})
    }
 
-   const person = {
-     name: body.name,
-     number: body.number,
-     id: personId
-   }
-
-   persons = persons.concat(person)
-   res.json(person)
+   Person
+    .find({name: body.name})
+    .then(result => {
+      if (result.length !==0) {
+        return res.status(400).json({error: 'Person is already has a number.'})
+      } else {
+        const person = new Person({
+          name: body.name,
+          number: body.number
+        })
+        person
+          .save()
+          .then(savedPerson => {
+            res.json(formatPerson(savedPerson))
+        })
+      }
+    })
  })
 
  app.get('/info', (req, res) => {
