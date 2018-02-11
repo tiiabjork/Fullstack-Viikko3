@@ -4,8 +4,10 @@ const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const cors = require ('cors')
 
+
 app.use(bodyParser.json())
 app.use(cors())
+app.use(express.static('build'))
 
 morgan.token('body', function (req, res) { return JSON.stringify(req.body) })
 app.use(morgan(':method :url :body :status :res[content-length] - :response-time ms'))
@@ -40,7 +42,7 @@ let persons = [
  ]
 
  app.get('/', (req, res) => {
-   res.send('<h1>Hihhei!</h1>')
+   res.send('/index.html')
  })
 
  app.get('/api/persons', (req, res) => {
